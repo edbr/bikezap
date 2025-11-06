@@ -1,17 +1,41 @@
 import { NextResponse } from "next/server";
-
-let cache: any[] = []; // simple in-memory cache for now
+import { supabase } from "@/lib/supabase";
+console.log("SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { title, url, summary, image } = body;
+  try {
+    const body = await req.json();
+    const { title, url, summary, image } = body;
 
-  cache.unshift({ title, url, summary, image, date: new Date().toISOString() });
-  if (cache.length > 20) cache.pop();
+    if (!title || !url) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
 
-  return NextResponse.json({ success: true });
+    // Avoid duplicates
+    const { error: insertError } = await supabase
+      .from("posts")
+      .upsert([{ title, url, summary, image }], { onConflict: "url" });
+
+    if (insertError) throw insertError;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error saving post:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
 export async function GET() {
-  return NextResponse.json(cache);
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .order("date", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("Error fetching posts:", error);
+    return NextResponse.json([]);
+  }
+
+  return NextResponse.json(data);
 }

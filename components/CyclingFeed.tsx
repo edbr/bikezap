@@ -20,12 +20,20 @@ export default function CyclingFeed() {
       .catch((err) => console.error("Error fetching posts:", err));
   }, []);
 
+  if (!posts.length) {
+    return (
+      <section className="max-w-2xl mx-auto p-8 text-center text-muted-foreground">
+        Loading latest cycling posts...
+      </section>
+    );
+  }
+
   return (
-    <main className="max-w-2xl mx-auto p-8">
-      <h1 className="text-2xl font-semibold mb-6">
+    <section className="max-w-2xl mx-auto p-8">
+      <h2 className="text-2xl font-semibold mb-6">
         🚴‍♂️ BikeZap — Cycling Pulse
-      </h1>
-      <p className="text-sm text-muted-foreground mb-8">
+      </h2>
+      <p className="text-sm text-muted-foreground mb-6">
         Auto-curated from Reddit via Zapier
       </p>
 
@@ -61,6 +69,6 @@ export default function CyclingFeed() {
           </li>
         ))}
       </ul>
-    </main>
+    </section>
   );
 }
