@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from "react";
 
+type RedditPost = {
+  title: string;
+  url: string;
+  summary?: string;
+  image?: string;
+  date?: string;
+};
+
 export default function CyclingFeed() {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<RedditPost[]>([]);
 
   useEffect(() => {
     fetch("/api/reddit")
       .then((r) => r.json())
-      .then(setPosts);
+      .then((data: RedditPost[]) => setPosts(data))
+      .catch((err) => console.error("Error fetching posts:", err));
   }, []);
 
   return (
@@ -21,10 +30,17 @@ export default function CyclingFeed() {
       <ul className="space-y-6">
         {posts.map((p, i) => (
           <li key={i} className="border-b border-border pb-4">
-            <a href={p.url} target="_blank" className="font-medium hover:underline">
+            <a
+              href={p.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium hover:underline"
+            >
               {p.title}
             </a>
-            <p className="text-sm text-muted-foreground">{p.summary}</p>
+            {p.summary && (
+              <p className="text-sm text-muted-foreground mt-1">{p.summary}</p>
+            )}
           </li>
         ))}
       </ul>
