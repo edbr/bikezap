@@ -1,27 +1,37 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-console.log("SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, url, summary, image } = body;
 
-    if (!title || !url) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    console.log("📩 Incoming body:", body);
+
+    const { data, error } = await supabase
+      .from("posts")
+      .upsert([
+        {
+          title: body.title,
+          url: body.url,
+          summary: body.summary,
+          image: body.image,
+          date: new Date().toISOString(),
+        },
+      ],
+      { onConflict: "url" }
+      )
+      .select();
+
+    if (error) {
+      console.error("❌ Supabase insert error:", error);
+      return NextResponse.json({ error }, { status: 500 });
     }
 
-    // Avoid duplicates
-    const { error: insertError } = await supabase
-      .from("posts")
-      .upsert([{ title, url, summary, image }], { onConflict: "url" });
-
-    if (insertError) throw insertError;
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error saving post:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.log("✅ Supabase insert success:", data);
+    return NextResponse.json(data);
+  } catch (err) {
+    console.error("🔥 POST handler error:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
 
@@ -29,12 +39,11 @@ export async function GET() {
   const { data, error } = await supabase
     .from("posts")
     .select("*")
-    .order("date", { ascending: false })
-    .limit(50);
+    .order("date", { ascending: false });
 
   if (error) {
-    console.error("Error fetching posts:", error);
-    return NextResponse.json([]);
+    console.error("❌ Supabase fetch error:", error);
+    return NextResponse.json({ error }, { status: 500 });
   }
 
   return NextResponse.json(data);
